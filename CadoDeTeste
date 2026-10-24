@@ -1,0 +1,196 @@
+Casos de Teste de Integração - Agent POS ↔ API REST ↔ Banco de Dados
+CT-INT-001 - Envio de status do terminal com sucesso
+Objetivo: Validar o envio de informações do terminal pelo Agent e a persistência correta na API e banco de dados.
+Pré-condições:
+•	Agent instalado e ativo.
+•	API disponível.
+•	Banco de dados operacional.
+•	Terminal cadastrado.
+Passos:
+1.	Iniciar o Agent.
+2.	Realizar envio do status do terminal para a API.
+3.	Consultar o registro persistido no banco.
+Dados de Entrada:
+JSON
+{
+"serialNumber": "SP930001",
+"firmwareVersion": "1.0.0",
+"status": "Online"
+}
+Resultado Esperado:
+•	API retorna HTTP 200.
+•	Registro é persistido no banco de dados.
+•	Dados armazenados correspondem aos enviados.
+•	Log de processamento é gerado.
+________________________________________
+CT-INT-002 - Autenticação válida do Agent
+Objetivo: Validar autenticação do Agent utilizando token válido.
+Pré-condições:
+•	Token válido cadastrado na API.
+Passos:
+1.	Agent realiza requisição autenticada.
+2.	API valida o token.
+Dados de Entrada:
+HTTP
+Authorization: Bearer TOKEN_VALIDO
+Resultado Esperado:
+•	Requisição autorizada.
+•	API retorna HTTP 200.
+•	Operação solicitada é executada normalmente.
+________________________________________
+CT-INT-003 - Autenticação inválida
+Objetivo: Garantir que requisições não autorizadas sejam bloqueadas.
+Pré-condições:
+•	API disponível.
+Passos:
+1.	Enviar requisição utilizando token inválido.
+Dados de Entrada:
+HTTP
+Authorization: Bearer TOKEN_INVALIDO
+Resultado Esperado:
+•	API retorna HTTP 401 Unauthorized.
+•	Nenhum registro é gravado no banco.
+•	Evento de segurança é registrado em log.
+________________________________________
+CT-INT-004 - Atualização de configuração com sucesso
+Objetivo: Validar recebimento de novas configurações pelo Agent.
+Pré-condições:
+•	Configuração disponível na API.
+Passos:
+1.	Agent consulta endpoint de configuração.
+2.	Recebe configuração atualizada.
+3.	Armazena configuração localmente.
+Dados de Entrada:
+JSON
+{
+"pollingInterval": 300,
+"logLevel": "Information"
+}
+Resultado Esperado:
+•	API retorna HTTP 200.
+•	Configuração é aplicada localmente.
+•	Confirmação é registrada em log.
+________________________________________
+CT-INT-005 - Falha de comunicação com a API
+Objetivo: Validar comportamento quando a API está indisponível.
+Pré-condições:
+•	API desligada ou inacessível.
+Passos:
+1.	Agent tenta enviar informações para a API.
+Dados de Entrada:
+JSON
+{
+"status": "Online"
+}
+Resultado Esperado:
+•	Comunicação falha.
+•	Erro é registrado em log.
+•	Dados permanecem em fila local para reenvio.
+•	Aplicação permanece operacional.
+________________________________________
+CT-INT-006 - Retentativa automática após indisponibilidade
+Objetivo: Validar mecanismo de retry do Agent.
+Pré-condições:
+•	API inicialmente indisponível.
+•	Política de retentativa configurada.
+Passos:
+1.	Agent envia requisição.
+2.	Primeira tentativa falha.
+3.	API retorna ao ar.
+4.	Nova tentativa é executada.
+Dados de Entrada:
+JSON
+{
+"eventType": "Heartbeat"
+}
+Resultado Esperado:
+•	Retentativa ocorre automaticamente.
+•	Dados são enviados com sucesso.
+•	Não há duplicidade de registro.
+•	Log registra todas as tentativas.
+________________________________________
+CT-INT-007 - Persistência após recuperação de conexão
+Objetivo: Validar sincronização de dados acumulados durante indisponibilidade.
+Pré-condições:
+•	Agent operando offline.
+•	Existem eventos pendentes.
+Passos:
+1.	Gerar eventos enquanto a API está indisponível.
+2.	Restabelecer conexão.
+3.	Executar sincronização.
+Dados de Entrada:
+JSON
+[
+{
+"eventId": "EVT001"
+},
+{
+"eventId": "EVT002"
+}
+]
+Resultado Esperado:
+•	Todos os eventos são transmitidos.
+•	Eventos são persistidos uma única vez.
+•	Nenhuma informação é perdida.
+________________________________________
+CT-INT-008 - Falha de persistência no banco de dados
+Objetivo: Verificar tratamento de erro quando o banco está indisponível.
+Pré-condições:
+•	API disponível.
+•	Banco indisponível.
+Passos:
+1.	Agent envia requisição válida.
+2.	API tenta persistir os dados.
+Dados de Entrada:
+JSON
+{
+"serialNumber": "SP930001"
+}
+Resultado Esperado:
+•	API retorna erro controlado.
+•	Falha é registrada em log.
+•	Dados permanecem disponíveis para reprocessamento.
+•	Não ocorre corrupção de dados.
+________________________________________
+CT-INT-009 - Prevenção de registros duplicados
+Objetivo: Garantir idempotência da integração.
+Pré-condições:
+•	API implementa chave de correlação.
+Passos:
+1.	Enviar a mesma requisição duas vezes.
+2.	Consultar registros persistidos.
+Dados de Entrada:
+JSON
+{
+"requestId": "REQ-12345",
+"serialNumber": "SP930001"
+}
+ 
+Resultado Esperado:
+•	Apenas um registro é persistido.
+•	Segunda requisição é ignorada ou tratada como duplicada.
+•	Log informa ocorrência de duplicidade.
+________________________________________
+CT-INT-010 - Processamento completo do ciclo Agent → API → Banco
+Objetivo: Validar fluxo ponta a ponta da integração.
+Pré-condições:
+•	Todos os componentes disponíveis.
+Passos:
+1.	Agent envia status.
+2.	API valida autenticação.
+3.	API processa dados.
+4.	Banco persiste informações.
+5.	API retorna confirmação.
+Dados de Entrada:
+JSON
+{
+"serialNumber": "SP930001",
+"status": "Online",
+"firmwareVersion": "1.0.0"
+}
+Resultado Esperado:
+•	Fluxo concluído sem erros.
+•	Dados persistidos corretamente.
+•	HTTP 200 retornado.
+•	Logs registrados em todas as etapas.
+
